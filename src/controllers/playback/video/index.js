@@ -1589,8 +1589,23 @@ export default function (view) {
         destroySubtitleSync();
     });
     let lastPointerDown = 0;
+    let orgPointerX = 0;
+    let orgPointerY = 0
     /* eslint-disable-next-line compat/compat */
-    dom.addEventListener(view, window.PointerEvent ? 'pointerdown' : 'click', function (e) {
+    dom.addEventListener(view, window.PointerEvent ? 'pointerdown' : 'mouseup', function (e) {
+        if (dom.parentWithClass(e.target, ['videoOsdBottom', 'upNextContainer'])) {
+            showOsd();
+            return;
+        }
+        if (!e.button)
+        {
+            orgPointerX = e.clientX;
+            orgPointerY = e.clientY;  
+        }
+        return;
+    });
+
+    dom.addEventListener(view, window.PointerEvent ? 'pointerup' : 'click', function (e) {
         if (dom.parentWithClass(e.target, ['videoOsdBottom', 'upNextContainer'])) {
             showOsd();
             return;
@@ -1605,7 +1620,6 @@ export default function (view) {
                     lastPointerDown = now;
                     toggleOsd();
                 }
-
                 break;
 
             case 'mouse':
@@ -1615,19 +1629,42 @@ export default function (view) {
                         playPauseClickTimeout = 0;
                     } else {
                         playPauseClickTimeout = setTimeout(function() {
+                            if (orgPointerX == 0 || Math.abs(e.clientX-orgPointerX)<5){   
                             playbackManager.playPause(currentPlayer);
                             showOsd();
-                            playPauseClickTimeout = 0;
+                            playPauseClickTimeout = 0;}
+                            orgPointerX = 0;
+                            orgPointerY = 0;
                         }, 300);
                     }
                 }
-
                 break;
 
             default:
-                playbackManager.playPause(currentPlayer);
-                showOsd();
+                if (orgPointerX == 0 || Math.abs(e.clientX-orgPointerX)<5){
+                    playbackManager.playPause(currentPlayer);
+                    showOsd();
+            }
+
         }
+
+        if (orgPointerX != 0 && Math.abs(e.clientX-orgPointerX)>5 && Math.abs(e.clientX-orgPointerX) > Math.abs(e.clientY-orgPointerY)){
+            const state = playbackManager.getPlayerState(currentPlayer);
+            const setp = e.clientX-orgPointerX;
+            const Percentage = (Math.abs(setp)/screen.width)/20;
+            const setpValue = state.NowPlayingItem.RunTimeTicks * Percentage;
+
+            if (setp > 0)
+            {
+                playbackManager.seekToHere(state.PlayState.PositionTicks+setpValue, currentPlayer);
+                //fower
+            }else{
+                playbackManager.seekToHere(state.PlayState.PositionTicks-setpValue, currentPlayer);
+                //back
+            }   
+        }
+        
+
     }, {
         passive: true
     });
@@ -1848,4 +1885,3 @@ export default function (view) {
         });
     }
 }
-

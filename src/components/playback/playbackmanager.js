@@ -3647,6 +3647,10 @@ class PlaybackManager {
         ticks *= percent;
         this.seek(parseInt(ticks, 10), player);
     }
+    seekToHere(ticks,player = this._currentPlayer)
+    {
+        this.seek(ticks, player);
+    }
 
     seekMs(ms, player = this._currentPlayer) {
         const ticks = ms * 10000;
